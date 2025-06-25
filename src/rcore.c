@@ -974,7 +974,9 @@ void EndDrawing(void)
         CORE.Time.frame += waitTime;    // Total frame time: update + draw + wait
     }
 
+#if !defined(MANUAL_INPUT_EVENTS_POLLING)
     PollInputEvents();      // Poll user events (before next frame update)
+#endif
 #endif
 
 #if defined(SUPPORT_SCREEN_CAPTURE)
@@ -3163,6 +3165,19 @@ void PlayAutomationEvent(AutomationEvent event)
         TRACELOG(LOG_INFO, "AUTOMATION PLAY: Frame: %i | Event type: %i | Event parameters: %i, %i, %i", event.frame, event.type, event.params[0], event.params[1], event.params[2]);
     }
 #endif
+}
+
+void ResetInputState() 
+{
+    int exitKey = CORE.Input.Keyboard.exitKey;
+    Vector2 mscale = CORE.Input.Mouse.scale;
+    int mcursor = CORE.Input.Mouse.cursor;
+    GamepadButton glastButtonPressed = CORE.Input.Gamepad.lastButtonPressed;
+    memset(&CORE.Input, 0, sizeof(CORE.Input));
+    CORE.Input.Keyboard.exitKey = exitKey;
+    CORE.Input.Mouse.scale = (Vector2){ 1.0f, 1.0f };
+    CORE.Input.Mouse.cursor = mcursor;
+    CORE.Input.Gamepad.lastButtonPressed = glastButtonPressed;
 }
 
 //----------------------------------------------------------------------------------

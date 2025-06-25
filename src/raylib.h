@@ -1168,6 +1168,7 @@ RLAPI void SetAutomationEventBaseFrame(int frame);                // Set automat
 RLAPI void StartAutomationEventRecording(void);                   // Start recording automation events (AutomationEventList must be set)
 RLAPI void StopAutomationEventRecording(void);                    // Stop recording automation events
 RLAPI void PlayAutomationEvent(AutomationEvent event);            // Play a recorded automation event
+RLAPI void ResetInputState();                                     // Reset all input data
 
 //------------------------------------------------------------------------------------
 // Input Handling Functions (Module: core)
