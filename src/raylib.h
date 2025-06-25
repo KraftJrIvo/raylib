@@ -520,9 +520,9 @@ typedef struct FilePathList {
 
 // Automation event
 typedef struct AutomationEvent {
-    unsigned int frame;             // Event frame
-    unsigned int type;              // Event type (AutomationEventType)
-    int params[4];                  // Event parameters (if required)
+    unsigned int frame;                 // Event frame
+    unsigned int type;                  // Event type (AutomationEventType)
+    int param0, param1, param2, param3; // Event parameters (if required)
 } AutomationEvent;
 
 // Automation event list
