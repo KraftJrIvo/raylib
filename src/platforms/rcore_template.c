@@ -408,7 +408,7 @@ const char *GetKeyName(int key)
 }
 
 // Register all input events
-void PollInputEvents(void)
+void _PollInputEvents(struct CoreInput* Input)
 {
 #if defined(SUPPORT_GESTURES_SYSTEM)
     // NOTE: Gestures update must be called every frame to reset gestures correctly
@@ -417,33 +417,41 @@ void PollInputEvents(void)
 #endif
 
     // Reset keys/chars pressed registered
-    CORE.Input.Keyboard.keyPressedQueueCount = 0;
-    CORE.Input.Keyboard.charPressedQueueCount = 0;
+    Input->Keyboard.keyPressedQueueCount = 0;
+    Input->Keyboard.charPressedQueueCount = 0;
 
     // Reset key repeats
-    for (int i = 0; i < MAX_KEYBOARD_KEYS; i++) CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+    for (int i = 0; i < MAX_KEYBOARD_KEYS; i++) Input->Keyboard.keyRepeatInFrame[i] = 0;
 
     // Reset last gamepad button/axis registered state
-    CORE.Input.Gamepad.lastButtonPressed = 0; // GAMEPAD_BUTTON_UNKNOWN
-    //CORE.Input.Gamepad.axisCount = 0;
+    Input->Gamepad.lastButtonPressed = 0; // GAMEPAD_BUTTON_UNKNOWN
+    //Input->Gamepad.axisCount = 0;
 
     // Register previous touch states
-    for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.previousTouchState[i] = CORE.Input.Touch.currentTouchState[i];
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.previousTouchState[i] = Input->Touch.currentTouchState[i];
 
     // Reset touch positions
     // TODO: It resets on target platform the mouse position and not filled again until a move-event,
     // so, if mouse is not moved it returns a (0, 0) position... this behaviour should be reviewed!
-    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.position[i] = (Vector2){ 0, 0 };
+    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.position[i] = (Vector2){ 0, 0 };
 
     // Register previous keys states
     // NOTE: Android supports up to 260 keys
     for (int i = 0; i < 260; i++)
     {
-        CORE.Input.Keyboard.previousKeyState[i] = CORE.Input.Keyboard.currentKeyState[i];
-        CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+        Input->Keyboard.previousKeyState[i] = Input->Keyboard.currentKeyState[i];
+        Input->Keyboard.keyRepeatInFrame[i] = 0;
     }
 
     // TODO: Poll input events for current platform
+}
+
+void PollInputEvents(void) {
+    _PollInputEvents(&CORE.Input);
+}
+
+void PollInputEventsAuto(void) {
+    _PollInputEvents(&CORE.InputAuto);
 }
 
 //----------------------------------------------------------------------------------

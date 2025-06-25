@@ -280,6 +280,58 @@ __declspec(dllimport) unsigned int __stdcall timeEndPeriod(unsigned int uPeriod)
 typedef struct { int x; int y; } Point;
 typedef struct { unsigned int width; unsigned int height; } Size;
 
+struct CoreInput {
+    struct {
+        int exitKey;                    // Default exit key
+        char currentKeyState[MAX_KEYBOARD_KEYS];        // Registers current frame key state
+        char previousKeyState[MAX_KEYBOARD_KEYS];       // Registers previous frame key state
+
+        // NOTE: Since key press logic involves comparing prev vs cur key state, we need to handle key repeats specially
+        char keyRepeatInFrame[MAX_KEYBOARD_KEYS];       // Registers key repeats for current frame
+
+        int keyPressedQueue[MAX_KEY_PRESSED_QUEUE];     // Input keys queue
+        int keyPressedQueueCount;       // Input keys queue count
+
+        int charPressedQueue[MAX_CHAR_PRESSED_QUEUE];   // Input characters queue (unicode)
+        int charPressedQueueCount;      // Input characters queue count
+
+    } Keyboard;
+    struct {
+        Vector2 offset;                 // Mouse offset
+        Vector2 scale;                  // Mouse scaling
+        Vector2 currentPosition;        // Mouse position on screen
+        Vector2 previousPosition;       // Previous mouse position
+
+        int cursor;                     // Tracks current mouse cursor
+        bool cursorHidden;              // Track if cursor is hidden
+        bool cursorOnScreen;            // Tracks if cursor is inside client area
+
+        char currentButtonState[MAX_MOUSE_BUTTONS];     // Registers current mouse button state
+        char previousButtonState[MAX_MOUSE_BUTTONS];    // Registers previous mouse button state
+        Vector2 currentWheelMove;       // Registers current mouse wheel variation
+        Vector2 previousWheelMove;      // Registers previous mouse wheel variation
+
+    } Mouse;
+    struct {
+        int pointCount;                             // Number of touch points active
+        int pointId[MAX_TOUCH_POINTS];              // Point identifiers
+        Vector2 position[MAX_TOUCH_POINTS];         // Touch position on screen
+        char currentTouchState[MAX_TOUCH_POINTS];   // Registers current touch state
+        char previousTouchState[MAX_TOUCH_POINTS];  // Registers previous touch state
+
+    } Touch;
+    struct {
+        int lastButtonPressed;          // Register last gamepad button pressed
+        int axisCount[MAX_GAMEPADS];    // Register number of available gamepad axes
+        bool ready[MAX_GAMEPADS];       // Flag to know if gamepad is ready
+        char name[MAX_GAMEPADS][MAX_GAMEPAD_NAME_LENGTH];               // Gamepad name holder
+        char currentButtonState[MAX_GAMEPADS][MAX_GAMEPAD_BUTTONS];     // Current gamepad buttons state
+        char previousButtonState[MAX_GAMEPADS][MAX_GAMEPAD_BUTTONS];    // Previous gamepad buttons state
+        float axisState[MAX_GAMEPADS][MAX_GAMEPAD_AXES];                // Gamepad axes state
+
+    } Gamepad;
+};
+
 // Core global state context data
 typedef struct CoreData {
     struct {
@@ -312,57 +364,8 @@ typedef struct CoreData {
         const char *basePath;               // Base path for data storage
 
     } Storage;
-    struct {
-        struct {
-            int exitKey;                    // Default exit key
-            char currentKeyState[MAX_KEYBOARD_KEYS];        // Registers current frame key state
-            char previousKeyState[MAX_KEYBOARD_KEYS];       // Registers previous frame key state
-
-            // NOTE: Since key press logic involves comparing prev vs cur key state, we need to handle key repeats specially
-            char keyRepeatInFrame[MAX_KEYBOARD_KEYS];       // Registers key repeats for current frame
-
-            int keyPressedQueue[MAX_KEY_PRESSED_QUEUE];     // Input keys queue
-            int keyPressedQueueCount;       // Input keys queue count
-
-            int charPressedQueue[MAX_CHAR_PRESSED_QUEUE];   // Input characters queue (unicode)
-            int charPressedQueueCount;      // Input characters queue count
-
-        } Keyboard;
-        struct {
-            Vector2 offset;                 // Mouse offset
-            Vector2 scale;                  // Mouse scaling
-            Vector2 currentPosition;        // Mouse position on screen
-            Vector2 previousPosition;       // Previous mouse position
-
-            int cursor;                     // Tracks current mouse cursor
-            bool cursorHidden;              // Track if cursor is hidden
-            bool cursorOnScreen;            // Tracks if cursor is inside client area
-
-            char currentButtonState[MAX_MOUSE_BUTTONS];     // Registers current mouse button state
-            char previousButtonState[MAX_MOUSE_BUTTONS];    // Registers previous mouse button state
-            Vector2 currentWheelMove;       // Registers current mouse wheel variation
-            Vector2 previousWheelMove;      // Registers previous mouse wheel variation
-
-        } Mouse;
-        struct {
-            int pointCount;                             // Number of touch points active
-            int pointId[MAX_TOUCH_POINTS];              // Point identifiers
-            Vector2 position[MAX_TOUCH_POINTS];         // Touch position on screen
-            char currentTouchState[MAX_TOUCH_POINTS];   // Registers current touch state
-            char previousTouchState[MAX_TOUCH_POINTS];  // Registers previous touch state
-
-        } Touch;
-        struct {
-            int lastButtonPressed;          // Register last gamepad button pressed
-            int axisCount[MAX_GAMEPADS];    // Register number of available gamepad axes
-            bool ready[MAX_GAMEPADS];       // Flag to know if gamepad is ready
-            char name[MAX_GAMEPADS][MAX_GAMEPAD_NAME_LENGTH];               // Gamepad name holder
-            char currentButtonState[MAX_GAMEPADS][MAX_GAMEPAD_BUTTONS];     // Current gamepad buttons state
-            char previousButtonState[MAX_GAMEPADS][MAX_GAMEPAD_BUTTONS];    // Previous gamepad buttons state
-            float axisState[MAX_GAMEPADS][MAX_GAMEPAD_AXES];                // Gamepad axes state
-
-        } Gamepad;
-    } Input;
+    struct CoreInput Input;
+    struct CoreInput InputAuto;
     struct {
         double current;                     // Current time measure
         double previous;                    // Previous time measure
@@ -976,6 +979,7 @@ void EndDrawing(void)
 
 #if !defined(MANUAL_INPUT_EVENTS_POLLING)
     PollInputEvents();      // Poll user events (before next frame update)
+    PollInputEventsAuto();  // Poll auto user events (before next frame update)
 #endif
 #endif
 
@@ -3100,46 +3104,46 @@ void PlayAutomationEvent(AutomationEvent event)
         switch (event.type)
         {
             // Input event
-            case INPUT_KEY_UP: CORE.Input.Keyboard.currentKeyState[event.params[0]] = false; break;             // param[0]: key
+            case INPUT_KEY_UP: CORE.InputAuto.Keyboard.currentKeyState[event.params[0]] = false; break;             // param[0]: key
             case INPUT_KEY_DOWN: {                                                                              // param[0]: key
-                CORE.Input.Keyboard.currentKeyState[event.params[0]] = true;
+                CORE.InputAuto.Keyboard.currentKeyState[event.params[0]] = true;
 
-                if (CORE.Input.Keyboard.previousKeyState[event.params[0]] == false)
+                if (CORE.InputAuto.Keyboard.previousKeyState[event.params[0]] == false)
                 {
-                    if (CORE.Input.Keyboard.keyPressedQueueCount < MAX_KEY_PRESSED_QUEUE)
+                    if (CORE.InputAuto.Keyboard.keyPressedQueueCount < MAX_KEY_PRESSED_QUEUE)
                     {
                         // Add character to the queue
-                        CORE.Input.Keyboard.keyPressedQueue[CORE.Input.Keyboard.keyPressedQueueCount] = event.params[0];
-                        CORE.Input.Keyboard.keyPressedQueueCount++;
+                        CORE.InputAuto.Keyboard.keyPressedQueue[CORE.InputAuto.Keyboard.keyPressedQueueCount] = event.params[0];
+                        CORE.InputAuto.Keyboard.keyPressedQueueCount++;
                     }
                 }
             } break;
-            case INPUT_MOUSE_BUTTON_UP: CORE.Input.Mouse.currentButtonState[event.params[0]] = false; break;    // param[0]: key
-            case INPUT_MOUSE_BUTTON_DOWN: CORE.Input.Mouse.currentButtonState[event.params[0]] = true; break;   // param[0]: key
+            case INPUT_MOUSE_BUTTON_UP: CORE.InputAuto.Mouse.currentButtonState[event.params[0]] = false; break;    // param[0]: key
+            case INPUT_MOUSE_BUTTON_DOWN: CORE.InputAuto.Mouse.currentButtonState[event.params[0]] = true; break;   // param[0]: key
             case INPUT_MOUSE_POSITION:      // param[0]: x, param[1]: y
             {
-                CORE.Input.Mouse.currentPosition.x = (float)event.params[0];
-                CORE.Input.Mouse.currentPosition.y = (float)event.params[1];
+                CORE.InputAuto.Mouse.currentPosition.x = (float)event.params[0];
+                CORE.InputAuto.Mouse.currentPosition.y = (float)event.params[1];
             } break;
             case INPUT_MOUSE_WHEEL_MOTION:  // param[0]: x delta, param[1]: y delta
             {
-                CORE.Input.Mouse.currentWheelMove.x = (float)event.params[0];
-                CORE.Input.Mouse.currentWheelMove.y = (float)event.params[1];
+                CORE.InputAuto.Mouse.currentWheelMove.x = (float)event.params[0];
+                CORE.InputAuto.Mouse.currentWheelMove.y = (float)event.params[1];
             } break;
-            case INPUT_TOUCH_UP: CORE.Input.Touch.currentTouchState[event.params[0]] = false; break;            // param[0]: id
-            case INPUT_TOUCH_DOWN: CORE.Input.Touch.currentTouchState[event.params[0]] = true; break;           // param[0]: id
+            case INPUT_TOUCH_UP: CORE.InputAuto.Touch.currentTouchState[event.params[0]] = false; break;            // param[0]: id
+            case INPUT_TOUCH_DOWN: CORE.InputAuto.Touch.currentTouchState[event.params[0]] = true; break;           // param[0]: id
             case INPUT_TOUCH_POSITION:      // param[0]: id, param[1]: x, param[2]: y
             {
-                CORE.Input.Touch.position[event.params[0]].x = (float)event.params[1];
-                CORE.Input.Touch.position[event.params[0]].y = (float)event.params[2];
+                CORE.InputAuto.Touch.position[event.params[0]].x = (float)event.params[1];
+                CORE.InputAuto.Touch.position[event.params[0]].y = (float)event.params[2];
             } break;
-            case INPUT_GAMEPAD_CONNECT: CORE.Input.Gamepad.ready[event.params[0]] = true; break;                // param[0]: gamepad
-            case INPUT_GAMEPAD_DISCONNECT: CORE.Input.Gamepad.ready[event.params[0]] = false; break;            // param[0]: gamepad
-            case INPUT_GAMEPAD_BUTTON_UP: CORE.Input.Gamepad.currentButtonState[event.params[0]][event.params[1]] = false; break;    // param[0]: gamepad, param[1]: button
-            case INPUT_GAMEPAD_BUTTON_DOWN: CORE.Input.Gamepad.currentButtonState[event.params[0]][event.params[1]] = true; break;   // param[0]: gamepad, param[1]: button
+            case INPUT_GAMEPAD_CONNECT: CORE.InputAuto.Gamepad.ready[event.params[0]] = true; break;                // param[0]: gamepad
+            case INPUT_GAMEPAD_DISCONNECT: CORE.InputAuto.Gamepad.ready[event.params[0]] = false; break;            // param[0]: gamepad
+            case INPUT_GAMEPAD_BUTTON_UP: CORE.InputAuto.Gamepad.currentButtonState[event.params[0]][event.params[1]] = false; break;    // param[0]: gamepad, param[1]: button
+            case INPUT_GAMEPAD_BUTTON_DOWN: CORE.InputAuto.Gamepad.currentButtonState[event.params[0]][event.params[1]] = true; break;   // param[0]: gamepad, param[1]: button
             case INPUT_GAMEPAD_AXIS_MOTION: // param[0]: gamepad, param[1]: axis, param[2]: delta
             {
-                CORE.Input.Gamepad.axisState[event.params[0]][event.params[1]] = ((float)event.params[2]/32768.0f);
+                CORE.InputAuto.Gamepad.axisState[event.params[0]][event.params[1]] = ((float)event.params[2]/32768.0f);
             } break;
     #if defined(SUPPORT_GESTURES_SYSTEM)
             case INPUT_GESTURE: GESTURES.current = event.params[0]; break;     // param[0]: gesture (enum Gesture) -> rgestures.h: GESTURES.current
@@ -3167,17 +3171,17 @@ void PlayAutomationEvent(AutomationEvent event)
 #endif
 }
 
-void ResetInputState() 
+void ResetAutoInputState() 
 {
-    int exitKey = CORE.Input.Keyboard.exitKey;
-    Vector2 mscale = CORE.Input.Mouse.scale;
-    int mcursor = CORE.Input.Mouse.cursor;
-    GamepadButton glastButtonPressed = CORE.Input.Gamepad.lastButtonPressed;
-    memset(&CORE.Input, 0, sizeof(CORE.Input));
-    CORE.Input.Keyboard.exitKey = exitKey;
-    CORE.Input.Mouse.scale = (Vector2){ 1.0f, 1.0f };
-    CORE.Input.Mouse.cursor = mcursor;
-    CORE.Input.Gamepad.lastButtonPressed = glastButtonPressed;
+    int exitKey = CORE.InputAuto.Keyboard.exitKey;
+    Vector2 mscale = CORE.InputAuto.Mouse.scale;
+    int mcursor = CORE.InputAuto.Mouse.cursor;
+    GamepadButton glastButtonPressed = CORE.InputAuto.Gamepad.lastButtonPressed;
+    memset(&CORE.InputAuto, 0, sizeof(CORE.InputAuto));
+    CORE.InputAuto.Keyboard.exitKey = exitKey;
+    CORE.InputAuto.Mouse.scale = (Vector2){ 1.0f, 1.0f };
+    CORE.InputAuto.Mouse.cursor = mcursor;
+    CORE.InputAuto.Gamepad.lastButtonPressed = glastButtonPressed;
 }
 
 //----------------------------------------------------------------------------------

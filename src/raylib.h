@@ -1087,6 +1087,7 @@ RLAPI int GetFPS(void);                                           // Get current
 // To avoid that behaviour and control frame processes manually, enable in config.h: SUPPORT_CUSTOM_FRAME_CONTROL
 RLAPI void SwapScreenBuffer(void);                                // Swap back buffer with front buffer (screen drawing)
 RLAPI void PollInputEvents(void);                                 // Register all input events
+RLAPI void PollInputEventsAuto(void);                             // Register all automation input events
 RLAPI void WaitTime(double seconds);                              // Wait for some time (halt program execution)
 
 // Random values generation functions
@@ -1168,7 +1169,7 @@ RLAPI void SetAutomationEventBaseFrame(int frame);                // Set automat
 RLAPI void StartAutomationEventRecording(void);                   // Start recording automation events (AutomationEventList must be set)
 RLAPI void StopAutomationEventRecording(void);                    // Stop recording automation events
 RLAPI void PlayAutomationEvent(AutomationEvent event);            // Play a recorded automation event
-RLAPI void ResetInputState();                                     // Reset all input data
+RLAPI void ResetAutoInputState();                                 // Reset all auto input data
 
 //------------------------------------------------------------------------------------
 // Input Handling Functions (Module: core)

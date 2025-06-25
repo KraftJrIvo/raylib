@@ -979,7 +979,7 @@ const char *GetKeyName(int key)
 }
 
 // Register all input events
-void PollInputEvents(void)
+void _PollInputEvents(struct CoreInput* Input)
 {
 #if defined(SUPPORT_GESTURES_SYSTEM)
     // NOTE: Gestures update must be called every frame to reset gestures correctly
@@ -988,39 +988,39 @@ void PollInputEvents(void)
 #endif
 
     // Reset keys/chars pressed registered
-    CORE.Input.Keyboard.keyPressedQueueCount = 0;
-    CORE.Input.Keyboard.charPressedQueueCount = 0;
+    Input->Keyboard.keyPressedQueueCount = 0;
+    Input->Keyboard.charPressedQueueCount = 0;
 
     // Reset last gamepad button/axis registered state
-    CORE.Input.Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
-    //CORE.Input.Gamepad.axisCount = 0;
+    Input->Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
+    //Input->Gamepad.axisCount = 0;
 
     // Keyboard/Mouse input polling (automatically managed by GLFW3 through callback)
 
     // Register previous keys states
     for (int i = 0; i < MAX_KEYBOARD_KEYS; i++)
     {
-        CORE.Input.Keyboard.previousKeyState[i] = CORE.Input.Keyboard.currentKeyState[i];
-        CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+        Input->Keyboard.previousKeyState[i] = Input->Keyboard.currentKeyState[i];
+        Input->Keyboard.keyRepeatInFrame[i] = 0;
     }
 
     // Register previous mouse states
-    for (int i = 0; i < MAX_MOUSE_BUTTONS; i++) CORE.Input.Mouse.previousButtonState[i] = CORE.Input.Mouse.currentButtonState[i];
+    for (int i = 0; i < MAX_MOUSE_BUTTONS; i++) Input->Mouse.previousButtonState[i] = Input->Mouse.currentButtonState[i];
 
     // Register previous mouse wheel state
-    CORE.Input.Mouse.previousWheelMove = CORE.Input.Mouse.currentWheelMove;
-    CORE.Input.Mouse.currentWheelMove = (Vector2){ 0.0f, 0.0f };
+    Input->Mouse.previousWheelMove = Input->Mouse.currentWheelMove;
+    Input->Mouse.currentWheelMove = (Vector2){ 0.0f, 0.0f };
 
     // Register previous mouse position
-    CORE.Input.Mouse.previousPosition = CORE.Input.Mouse.currentPosition;
+    Input->Mouse.previousPosition = Input->Mouse.currentPosition;
 
     // Register previous touch states
-    for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.previousTouchState[i] = CORE.Input.Touch.currentTouchState[i];
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.previousTouchState[i] = Input->Touch.currentTouchState[i];
 
     // Reset touch positions
     // TODO: It resets on target platform the mouse position and not filled again until a move-event,
     // so, if mouse is not moved it returns a (0, 0) position... this behaviour should be reviewed!
-    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.position[i] = (Vector2){ 0, 0 };
+    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.position[i] = (Vector2){ 0, 0 };
 
     // Gamepad support using emscripten API
     // NOTE: GLFW3 joystick functionality not available in web
@@ -1032,7 +1032,7 @@ void PollInputEvents(void)
     for (int i = 0; (i < numGamepads) && (i < MAX_GAMEPADS); i++)
     {
         // Register previous gamepad button states
-        for (int k = 0; k < MAX_GAMEPAD_BUTTONS; k++) CORE.Input.Gamepad.previousButtonState[i][k] = CORE.Input.Gamepad.currentButtonState[i][k];
+        for (int k = 0; k < MAX_GAMEPAD_BUTTONS; k++) Input->Gamepad.previousButtonState[i][k] = Input->Gamepad.currentButtonState[i][k];
 
         EmscriptenGamepadEvent gamepadState;
 
@@ -1071,10 +1071,10 @@ void PollInputEvents(void)
                 {
                     if (gamepadState.digitalButton[j] == 1)
                     {
-                        CORE.Input.Gamepad.currentButtonState[i][button] = 1;
-                        CORE.Input.Gamepad.lastButtonPressed = button;
+                        Input->Gamepad.currentButtonState[i][button] = 1;
+                        Input->Gamepad.lastButtonPressed = button;
                     }
-                    else CORE.Input.Gamepad.currentButtonState[i][button] = 0;
+                    else Input->Gamepad.currentButtonState[i][button] = 0;
                 }
 
                 //TRACELOGD("INPUT: Gamepad %d, button %d: Digital: %d, Analog: %g", gamepadState.index, j, gamepadState.digitalButton[j], gamepadState.analogButton[j]);
@@ -1083,10 +1083,10 @@ void PollInputEvents(void)
             // Register axis data for every connected gamepad
             for (int j = 0; (j < gamepadState.numAxes) && (j < MAX_GAMEPAD_AXES); j++)
             {
-                CORE.Input.Gamepad.axisState[i][j] = gamepadState.axis[j];
+                Input->Gamepad.axisState[i][j] = gamepadState.axis[j];
             }
 
-            CORE.Input.Gamepad.axisCount[i] = gamepadState.numAxes;
+            Input->Gamepad.axisCount[i] = gamepadState.numAxes;
         }
     }
 
@@ -1095,6 +1095,14 @@ void PollInputEvents(void)
     // TODO: This code does not seem to do anything??
     //if (CORE.Window.eventWaiting) glfwWaitEvents();     // Wait for in input events before continue (drawing is paused)
     //else glfwPollEvents(); // Poll input events: keyboard/mouse/window events (callbacks) --> WARNING: Where is key input reset?
+}
+
+void PollInputEvents(void) {
+    _PollInputEvents(&CORE.Input);
+}
+
+void PollInputEventsAuto(void) {
+    _PollInputEvents(&CORE.InputAuto);
 }
 
 //----------------------------------------------------------------------------------

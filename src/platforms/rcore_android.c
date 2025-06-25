@@ -667,8 +667,7 @@ const char *GetKeyName(int key)
     return "";
 }
 
-// Register all input events
-void PollInputEvents(void)
+void _PollInputEvents(struct CoreInput* Input)
 {
 #if defined(SUPPORT_GESTURES_SYSTEM)
     // NOTE: Gestures update must be called every frame to reset gestures correctly
@@ -677,37 +676,37 @@ void PollInputEvents(void)
 #endif
 
     // Reset keys/chars pressed registered
-    CORE.Input.Keyboard.keyPressedQueueCount = 0;
-    CORE.Input.Keyboard.charPressedQueueCount = 0;
+    Input->Keyboard.keyPressedQueueCount = 0;
+    Input->Keyboard.charPressedQueueCount = 0;
     // Reset key repeats
-    for (int i = 0; i < MAX_KEYBOARD_KEYS; i++) CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+    for (int i = 0; i < MAX_KEYBOARD_KEYS; i++) Input->Keyboard.keyRepeatInFrame[i] = 0;
 
     // Reset last gamepad button/axis registered state
-    CORE.Input.Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
-    //CORE.Input.Gamepad.axisCount = 0;
+    Input->Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
+    //Input->Gamepad.axisCount = 0;
 
     for (int i = 0; i < MAX_GAMEPADS; i++)
     {
-        if (CORE.Input.Gamepad.ready[i])     // Check if gamepad is available
+        if (Input->Gamepad.ready[i])     // Check if gamepad is available
         {
             // Register previous gamepad states
             for (int k = 0; k < MAX_GAMEPAD_BUTTONS; k++)
-                CORE.Input.Gamepad.previousButtonState[i][k] = CORE.Input.Gamepad.currentButtonState[i][k];
+                Input->Gamepad.previousButtonState[i][k] = Input->Gamepad.currentButtonState[i][k];
         }
     }
 
     // Register previous touch states
-    for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.previousTouchState[i] = CORE.Input.Touch.currentTouchState[i];
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.previousTouchState[i] = Input->Touch.currentTouchState[i];
 
     // Reset touch positions
-    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.position[i] = (Vector2){ 0, 0 };
+    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.position[i] = (Vector2){ 0, 0 };
 
     // Register previous keys states
     // NOTE: Android supports up to 260 keys
     for (int i = 0; i < 260; i++)
     {
-        CORE.Input.Keyboard.previousKeyState[i] = CORE.Input.Keyboard.currentKeyState[i];
-        CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+        Input->Keyboard.previousKeyState[i] = Input->Keyboard.currentKeyState[i];
+        Input->Keyboard.keyRepeatInFrame[i] = 0;
     }
 
     // Android ALooper_pollOnce() variables
@@ -729,6 +728,18 @@ void PollInputEvents(void)
             CORE.Window.shouldClose = true;
         }
     }
+}
+
+// Register all input events
+void PollInputEvents(void)
+{
+    _PollInputEvents(&CORE.Input);
+}
+
+// Register all auto input events
+void PollInputEventsAuto(void)
+{
+    _PollInputEvents(&CORE.InputAuto);
 }
 
 //----------------------------------------------------------------------------------

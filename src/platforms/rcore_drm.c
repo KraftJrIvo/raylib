@@ -646,7 +646,7 @@ const char *GetKeyName(int key)
 }
 
 // Register all input events
-void PollInputEvents(void)
+void _PollInputEvents(struct CoreInput* Input)
 {
 #if defined(SUPPORT_GESTURES_SYSTEM)
     // NOTE: Gestures update must be called every frame to reset gestures correctly
@@ -655,18 +655,18 @@ void PollInputEvents(void)
 #endif
 
     // Reset keys/chars pressed registered
-    CORE.Input.Keyboard.keyPressedQueueCount = 0;
-    CORE.Input.Keyboard.charPressedQueueCount = 0;
+    Input->Keyboard.keyPressedQueueCount = 0;
+    Input->Keyboard.charPressedQueueCount = 0;
 
     // Reset last gamepad button/axis registered state
-    CORE.Input.Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
-    //CORE.Input.Gamepad.axisCount = 0;
+    Input->Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
+    //Input->Gamepad.axisCount = 0;
 
     // Register previous keys states
     for (int i = 0; i < MAX_KEYBOARD_KEYS; i++)
     {
-        CORE.Input.Keyboard.previousKeyState[i] = CORE.Input.Keyboard.currentKeyState[i];
-        CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+        Input->Keyboard.previousKeyState[i] = Input->Keyboard.currentKeyState[i];
+        Input->Keyboard.keyRepeatInFrame[i] = 0;
     }
 
     PollKeyboardEvents();
@@ -678,38 +678,46 @@ void PollInputEvents(void)
 #endif
 
     // Check exit key
-    if (CORE.Input.Keyboard.currentKeyState[CORE.Input.Keyboard.exitKey] == 1) CORE.Window.shouldClose = true;
+    if (Input->Keyboard.currentKeyState[Input->Keyboard.exitKey] == 1) CORE.Window.shouldClose = true;
 
     // Register previous mouse position
-    if (platform.cursorRelative) CORE.Input.Mouse.currentPosition = (Vector2){ 0.0f, 0.0f };
-    else CORE.Input.Mouse.previousPosition = CORE.Input.Mouse.currentPosition;
+    if (platform.cursorRelative) Input->Mouse.currentPosition = (Vector2){ 0.0f, 0.0f };
+    else Input->Mouse.previousPosition = Input->Mouse.currentPosition;
 
     // Register previous mouse states
-    CORE.Input.Mouse.previousWheelMove = CORE.Input.Mouse.currentWheelMove;
-    CORE.Input.Mouse.currentWheelMove = platform.eventWheelMove;
+    Input->Mouse.previousWheelMove = Input->Mouse.currentWheelMove;
+    Input->Mouse.currentWheelMove = platform.eventWheelMove;
     platform.eventWheelMove = (Vector2){ 0.0f, 0.0f };
 
     for (int i = 0; i < MAX_MOUSE_BUTTONS; i++)
     {
-        CORE.Input.Mouse.previousButtonState[i] = CORE.Input.Mouse.currentButtonState[i];
-        CORE.Input.Mouse.currentButtonState[i] = platform.currentButtonStateEvdev[i];
-        CORE.Input.Touch.currentTouchState[i] = platform.currentButtonStateEvdev[i];
+        Input->Mouse.previousButtonState[i] = Input->Mouse.currentButtonState[i];
+        Input->Mouse.currentButtonState[i] = platform.currentButtonStateEvdev[i];
+        Input->Touch.currentTouchState[i] = platform.currentButtonStateEvdev[i];
     }
 
     // Register gamepads buttons events
     PollGamepadEvents();
 
     // Register previous touch states
-    for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.previousTouchState[i] = CORE.Input.Touch.currentTouchState[i];
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.previousTouchState[i] = Input->Touch.currentTouchState[i];
 
     // Reset touch positions
-    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.position[i] = (Vector2){ 0, 0 };
+    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.position[i] = (Vector2){ 0, 0 };
 
     // Map touch position to mouse position for convenience
-    CORE.Input.Touch.position[0] = CORE.Input.Mouse.currentPosition;
+    Input->Touch.position[0] = Input->Mouse.currentPosition;
 
     // Handle the mouse/touch/gestures events:
     PollMouseEvents();
+}
+
+void PollInputEvents(void) {
+    _PollInputEvents(&CORE.Input);
+}
+
+void PollInputEventsAuto(void) {
+    _PollInputEvents(&CORE.InputAuto);
 }
 
 //----------------------------------------------------------------------------------

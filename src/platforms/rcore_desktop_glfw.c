@@ -1128,7 +1128,7 @@ const char *GetKeyName(int key)
 }
 
 // Register all input events
-void PollInputEvents(void)
+void _PollInputEvents(struct CoreInput* Input)
 {
 #if defined(SUPPORT_GESTURES_SYSTEM)
     // NOTE: Gestures update must be called every frame to reset gestures correctly
@@ -1137,60 +1137,60 @@ void PollInputEvents(void)
 #endif
 
     // Reset keys/chars pressed registered
-    CORE.Input.Keyboard.keyPressedQueueCount = 0;
-    CORE.Input.Keyboard.charPressedQueueCount = 0;
+    Input->Keyboard.keyPressedQueueCount = 0;
+    Input->Keyboard.charPressedQueueCount = 0;
 
     // Reset last gamepad button/axis registered state
-    CORE.Input.Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
-    //CORE.Input.Gamepad.axisCount = 0;
+    Input->Gamepad.lastButtonPressed = 0;       // GAMEPAD_BUTTON_UNKNOWN
+    //Input->Gamepad.axisCount = 0;
 
     // Keyboard/Mouse input polling (automatically managed by GLFW3 through callback)
 
     // Register previous keys states
     for (int i = 0; i < MAX_KEYBOARD_KEYS; i++)
     {
-        CORE.Input.Keyboard.previousKeyState[i] = CORE.Input.Keyboard.currentKeyState[i];
-        CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+        Input->Keyboard.previousKeyState[i] = Input->Keyboard.currentKeyState[i];
+        Input->Keyboard.keyRepeatInFrame[i] = 0;
     }
 
     // Register previous mouse states
-    for (int i = 0; i < MAX_MOUSE_BUTTONS; i++) CORE.Input.Mouse.previousButtonState[i] = CORE.Input.Mouse.currentButtonState[i];
+    for (int i = 0; i < MAX_MOUSE_BUTTONS; i++) Input->Mouse.previousButtonState[i] = Input->Mouse.currentButtonState[i];
 
     // Register previous mouse wheel state
-    CORE.Input.Mouse.previousWheelMove = CORE.Input.Mouse.currentWheelMove;
-    CORE.Input.Mouse.currentWheelMove = (Vector2){ 0.0f, 0.0f };
+    Input->Mouse.previousWheelMove = Input->Mouse.currentWheelMove;
+    Input->Mouse.currentWheelMove = (Vector2){ 0.0f, 0.0f };
 
     // Register previous mouse position
-    CORE.Input.Mouse.previousPosition = CORE.Input.Mouse.currentPosition;
+    Input->Mouse.previousPosition = Input->Mouse.currentPosition;
 
     // Register previous touch states
-    for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.previousTouchState[i] = CORE.Input.Touch.currentTouchState[i];
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.previousTouchState[i] = Input->Touch.currentTouchState[i];
 
     // Reset touch positions
-    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.position[i] = (Vector2){ 0, 0 };
+    //for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.position[i] = (Vector2){ 0, 0 };
 
     // Map touch position to mouse position for convenience
     // WARNING: If the target desktop device supports touch screen, this behaviour should be reviewed!
     // TODO: GLFW does not support multi-touch input just yet
     // https://www.codeproject.com/Articles/668404/Programming-for-Multi-Touch
     // https://docs.microsoft.com/en-us/windows/win32/wintouch/getting-started-with-multi-touch-messages
-    CORE.Input.Touch.position[0] = CORE.Input.Mouse.currentPosition;
+    Input->Touch.position[0] = Input->Mouse.currentPosition;
 
     // Check if gamepads are ready
     // NOTE: We do it here in case of disconnection
     for (int i = 0; i < MAX_GAMEPADS; i++)
     {
-        if (glfwJoystickPresent(i)) CORE.Input.Gamepad.ready[i] = true;
-        else CORE.Input.Gamepad.ready[i] = false;
+        if (glfwJoystickPresent(i)) Input->Gamepad.ready[i] = true;
+        else Input->Gamepad.ready[i] = false;
     }
 
     // Register gamepads buttons events
     for (int i = 0; i < MAX_GAMEPADS; i++)
     {
-        if (CORE.Input.Gamepad.ready[i])     // Check if gamepad is available
+        if (Input->Gamepad.ready[i])     // Check if gamepad is available
         {
             // Register previous gamepad states
-            for (int k = 0; k < MAX_GAMEPAD_BUTTONS; k++) CORE.Input.Gamepad.previousButtonState[i][k] = CORE.Input.Gamepad.currentButtonState[i][k];
+            for (int k = 0; k < MAX_GAMEPAD_BUTTONS; k++) Input->Gamepad.previousButtonState[i][k] = Input->Gamepad.currentButtonState[i][k];
 
             // Get current gamepad state
             // NOTE: There is no callback available, so we get it manually
@@ -1231,10 +1231,10 @@ void PollInputEvents(void)
                 {
                     if (buttons[k] == GLFW_PRESS)
                     {
-                        CORE.Input.Gamepad.currentButtonState[i][button] = 1;
-                        CORE.Input.Gamepad.lastButtonPressed = button;
+                        Input->Gamepad.currentButtonState[i][button] = 1;
+                        Input->Gamepad.lastButtonPressed = button;
                     }
-                    else CORE.Input.Gamepad.currentButtonState[i][button] = 0;
+                    else Input->Gamepad.currentButtonState[i][button] = 0;
                 }
             }
 
@@ -1243,24 +1243,24 @@ void PollInputEvents(void)
 
             for (int k = 0; (axes != NULL) && (k < GLFW_GAMEPAD_AXIS_LAST + 1); k++)
             {
-                CORE.Input.Gamepad.axisState[i][k] = axes[k];
+                Input->Gamepad.axisState[i][k] = axes[k];
             }
 
             // Register buttons for 2nd triggers (because GLFW doesn't count these as buttons but rather as axes)
-            if (CORE.Input.Gamepad.axisState[i][GAMEPAD_AXIS_LEFT_TRIGGER] > 0.1f)
+            if (Input->Gamepad.axisState[i][GAMEPAD_AXIS_LEFT_TRIGGER] > 0.1f)
             {
-                CORE.Input.Gamepad.currentButtonState[i][GAMEPAD_BUTTON_LEFT_TRIGGER_2] = 1;
-                CORE.Input.Gamepad.lastButtonPressed = GAMEPAD_BUTTON_LEFT_TRIGGER_2;
+                Input->Gamepad.currentButtonState[i][GAMEPAD_BUTTON_LEFT_TRIGGER_2] = 1;
+                Input->Gamepad.lastButtonPressed = GAMEPAD_BUTTON_LEFT_TRIGGER_2;
             }
-            else CORE.Input.Gamepad.currentButtonState[i][GAMEPAD_BUTTON_LEFT_TRIGGER_2] = 0;
-            if (CORE.Input.Gamepad.axisState[i][GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.1f)
+            else Input->Gamepad.currentButtonState[i][GAMEPAD_BUTTON_LEFT_TRIGGER_2] = 0;
+            if (Input->Gamepad.axisState[i][GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.1f)
             {
-                CORE.Input.Gamepad.currentButtonState[i][GAMEPAD_BUTTON_RIGHT_TRIGGER_2] = 1;
-                CORE.Input.Gamepad.lastButtonPressed = GAMEPAD_BUTTON_RIGHT_TRIGGER_2;
+                Input->Gamepad.currentButtonState[i][GAMEPAD_BUTTON_RIGHT_TRIGGER_2] = 1;
+                Input->Gamepad.lastButtonPressed = GAMEPAD_BUTTON_RIGHT_TRIGGER_2;
             }
-            else CORE.Input.Gamepad.currentButtonState[i][GAMEPAD_BUTTON_RIGHT_TRIGGER_2] = 0;
+            else Input->Gamepad.currentButtonState[i][GAMEPAD_BUTTON_RIGHT_TRIGGER_2] = 0;
 
-            CORE.Input.Gamepad.axisCount[i] = GLFW_GAMEPAD_AXIS_LAST + 1;
+            Input->Gamepad.axisCount[i] = GLFW_GAMEPAD_AXIS_LAST + 1;
         }
     }
 
@@ -1277,6 +1277,14 @@ void PollInputEvents(void)
 
     // Reset close status for next frame
     glfwSetWindowShouldClose(platform.handle, GLFW_FALSE);
+}
+
+void PollInputEvents(void) {
+    return _PollInputEvents(&CORE.Input);
+}
+
+void PollInputEventsAuto(void) {
+    return _PollInputEvents(&CORE.InputAuto);
 }
 
 //----------------------------------------------------------------------------------

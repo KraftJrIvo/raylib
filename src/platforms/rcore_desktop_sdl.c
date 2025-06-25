@@ -1327,7 +1327,7 @@ static void UpdateTouchPointsSDL(SDL_TouchFingerEvent event)
 }
 
 // Register all input events
-void PollInputEvents(void)
+void _PollInputEvents(struct CoreInput* Input)
 {
 #if defined(SUPPORT_GESTURES_SYSTEM)
     // NOTE: Gestures update must be called every frame to reset gestures correctly
@@ -1336,36 +1336,36 @@ void PollInputEvents(void)
 #endif
 
     // Reset keys/chars pressed registered
-    CORE.Input.Keyboard.keyPressedQueueCount = 0;
-    CORE.Input.Keyboard.charPressedQueueCount = 0;
+    Input->Keyboard.keyPressedQueueCount = 0;
+    Input->Keyboard.charPressedQueueCount = 0;
 
     // Reset mouse wheel
-    CORE.Input.Mouse.currentWheelMove.x = 0;
-    CORE.Input.Mouse.currentWheelMove.y = 0;
+    Input->Mouse.currentWheelMove.x = 0;
+    Input->Mouse.currentWheelMove.y = 0;
 
     // Register previous mouse position
-    if (platform.cursorRelative) CORE.Input.Mouse.currentPosition = (Vector2){ 0.0f, 0.0f };
-    else CORE.Input.Mouse.previousPosition = CORE.Input.Mouse.currentPosition;
+    if (platform.cursorRelative) Input->Mouse.currentPosition = (Vector2){ 0.0f, 0.0f };
+    else Input->Mouse.previousPosition = Input->Mouse.currentPosition;
 
     // Reset last gamepad button/axis registered state
     for (int i = 0; (i < SDL_NumJoysticks()) && (i < MAX_GAMEPADS); i++)
     {
         // Check if gamepad is available
-        if (CORE.Input.Gamepad.ready[i])
+        if (Input->Gamepad.ready[i])
         {
             // Register previous gamepad button states
             for (int k = 0; k < MAX_GAMEPAD_BUTTONS; k++)
             {
-                CORE.Input.Gamepad.previousButtonState[i][k] = CORE.Input.Gamepad.currentButtonState[i][k];
+                Input->Gamepad.previousButtonState[i][k] = Input->Gamepad.currentButtonState[i][k];
             }
         }
     }
 
     // Register previous touch states
-    for (int i = 0; i < MAX_TOUCH_POINTS; i++) CORE.Input.Touch.previousTouchState[i] = CORE.Input.Touch.currentTouchState[i];
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++) Input->Touch.previousTouchState[i] = Input->Touch.currentTouchState[i];
 
     // Map touch position to mouse position for convenience
-    if (CORE.Input.Touch.pointCount == 0) CORE.Input.Touch.position[0] = CORE.Input.Mouse.currentPosition;
+    if (Input->Touch.pointCount == 0) Input->Touch.position[0] = Input->Mouse.currentPosition;
 
     int touchAction = -1;       // 0-TOUCH_ACTION_UP, 1-TOUCH_ACTION_DOWN, 2-TOUCH_ACTION_MOVE
     bool realTouch = false;     // Flag to differentiate real touch gestures from mouse ones
@@ -1374,12 +1374,12 @@ void PollInputEvents(void)
     // NOTE: Android supports up to 260 keys
     for (int i = 0; i < MAX_KEYBOARD_KEYS; i++)
     {
-        CORE.Input.Keyboard.previousKeyState[i] = CORE.Input.Keyboard.currentKeyState[i];
-        CORE.Input.Keyboard.keyRepeatInFrame[i] = 0;
+        Input->Keyboard.previousKeyState[i] = Input->Keyboard.currentKeyState[i];
+        Input->Keyboard.keyRepeatInFrame[i] = 0;
     }
 
     // Register previous mouse states
-    for (int i = 0; i < MAX_MOUSE_BUTTONS; i++) CORE.Input.Mouse.previousButtonState[i] = CORE.Input.Mouse.currentButtonState[i];
+    for (int i = 0; i < MAX_MOUSE_BUTTONS; i++) Input->Mouse.previousButtonState[i] = Input->Mouse.currentButtonState[i];
 
     // Poll input events for current platform
     //-----------------------------------------------------------------------------
@@ -1388,7 +1388,7 @@ void PollInputEvents(void)
     const Uint8 *keys = SDL_GetKeyboardState(NULL);
     for (int i = 0; i < 256; ++i)
     {
-        CORE.Input.Keyboard.currentKeyState[i] = keys[i];
+        Input->Keyboard.currentKeyState[i] = keys[i];
         //if (keys[i]) TRACELOG(LOG_WARNING, "Pressed key: %i", i);
     }
     */
@@ -1501,11 +1501,11 @@ void PollInputEvents(void)
 
                     case SDL_WINDOWEVENT_ENTER:
                     {
-                        CORE.Input.Mouse.cursorOnScreen = true;
+                        Input->Mouse.cursorOnScreen = true;
                     } break;
                     case SDL_WINDOWEVENT_LEAVE:
                     {
-                        CORE.Input.Mouse.cursorOnScreen = false;
+                        Input->Mouse.cursorOnScreen = false;
                     } break;
 
                     case SDL_WINDOWEVENT_MINIMIZED:
@@ -1568,19 +1568,19 @@ void PollInputEvents(void)
                 if (key != KEY_NULL)
                 {
                     // If key was up, add it to the key pressed queue
-                    if ((CORE.Input.Keyboard.currentKeyState[key] == 0) && (CORE.Input.Keyboard.keyPressedQueueCount < MAX_KEY_PRESSED_QUEUE))
+                    if ((Input->Keyboard.currentKeyState[key] == 0) && (Input->Keyboard.keyPressedQueueCount < MAX_KEY_PRESSED_QUEUE))
                     {
-                        CORE.Input.Keyboard.keyPressedQueue[CORE.Input.Keyboard.keyPressedQueueCount] = key;
-                        CORE.Input.Keyboard.keyPressedQueueCount++;
+                        Input->Keyboard.keyPressedQueue[Input->Keyboard.keyPressedQueueCount] = key;
+                        Input->Keyboard.keyPressedQueueCount++;
                     }
 
-                    CORE.Input.Keyboard.currentKeyState[key] = 1;
+                    Input->Keyboard.currentKeyState[key] = 1;
                 }
 
-                if (event.key.repeat) CORE.Input.Keyboard.keyRepeatInFrame[key] = 1;
+                if (event.key.repeat) Input->Keyboard.keyRepeatInFrame[key] = 1;
 
                 // TODO: Put exitKey verification outside the switch?
-                if (CORE.Input.Keyboard.currentKeyState[CORE.Input.Keyboard.exitKey])
+                if (Input->Keyboard.currentKeyState[Input->Keyboard.exitKey])
                 {
                     CORE.Window.shouldClose = true;
                 }
@@ -1594,7 +1594,7 @@ void PollInputEvents(void)
             #else
                 KeyboardKey key = ConvertScancodeToKey(event.key.keysym.scancode);
             #endif
-                if (key != KEY_NULL) CORE.Input.Keyboard.currentKeyState[key] = 0;
+                if (key != KEY_NULL) Input->Keyboard.currentKeyState[key] = 0;
             } break;
 
             case SDL_TEXTINPUT:
@@ -1604,11 +1604,11 @@ void PollInputEvents(void)
                 int codepointSize = 0;
 
                 // Check if there is space available in the queue
-                if (CORE.Input.Keyboard.charPressedQueueCount < MAX_CHAR_PRESSED_QUEUE)
+                if (Input->Keyboard.charPressedQueueCount < MAX_CHAR_PRESSED_QUEUE)
                 {
                     // Add character (codepoint) to the queue
-                    CORE.Input.Keyboard.charPressedQueue[CORE.Input.Keyboard.charPressedQueueCount] = GetCodepointNext(event.text.text, &codepointSize);
-                    CORE.Input.Keyboard.charPressedQueueCount++;
+                    Input->Keyboard.charPressedQueue[Input->Keyboard.charPressedQueueCount] = GetCodepointNext(event.text.text, &codepointSize);
+                    Input->Keyboard.charPressedQueueCount++;
                 }
             } break;
 
@@ -1621,8 +1621,8 @@ void PollInputEvents(void)
                 if (btn == 2) btn = 1;
                 else if (btn == 1) btn = 2;
 
-                CORE.Input.Mouse.currentButtonState[btn] = 1;
-                CORE.Input.Touch.currentTouchState[btn] = 1;
+                Input->Mouse.currentButtonState[btn] = 1;
+                Input->Touch.currentTouchState[btn] = 1;
 
                 touchAction = 1;
             } break;
@@ -1634,31 +1634,31 @@ void PollInputEvents(void)
                 if (btn == 2) btn = 1;
                 else if (btn == 1) btn = 2;
 
-                CORE.Input.Mouse.currentButtonState[btn] = 0;
-                CORE.Input.Touch.currentTouchState[btn] = 0;
+                Input->Mouse.currentButtonState[btn] = 0;
+                Input->Touch.currentTouchState[btn] = 0;
 
                 touchAction = 0;
             } break;
             case SDL_MOUSEWHEEL:
             {
-                CORE.Input.Mouse.currentWheelMove.x = (float)event.wheel.x;
-                CORE.Input.Mouse.currentWheelMove.y = (float)event.wheel.y;
+                Input->Mouse.currentWheelMove.x = (float)event.wheel.x;
+                Input->Mouse.currentWheelMove.y = (float)event.wheel.y;
             } break;
             case SDL_MOUSEMOTION:
             {
                 if (platform.cursorRelative)
                 {
-                    CORE.Input.Mouse.currentPosition.x = (float)event.motion.xrel;
-                    CORE.Input.Mouse.currentPosition.y = (float)event.motion.yrel;
-                    CORE.Input.Mouse.previousPosition = (Vector2){ 0.0f, 0.0f };
+                    Input->Mouse.currentPosition.x = (float)event.motion.xrel;
+                    Input->Mouse.currentPosition.y = (float)event.motion.yrel;
+                    Input->Mouse.previousPosition = (Vector2){ 0.0f, 0.0f };
                 }
                 else
                 {
-                    CORE.Input.Mouse.currentPosition.x = (float)event.motion.x;
-                    CORE.Input.Mouse.currentPosition.y = (float)event.motion.y;
+                    Input->Mouse.currentPosition.x = (float)event.motion.x;
+                    Input->Mouse.currentPosition.y = (float)event.motion.y;
                 }
 
-                CORE.Input.Touch.position[0] = CORE.Input.Mouse.currentPosition;
+                Input->Touch.position[0] = Input->Mouse.currentPosition;
                 touchAction = 2;
             } break;
 
@@ -1686,19 +1686,19 @@ void PollInputEvents(void)
             {
                 int jid = event.jdevice.which; // Joystick device index
 
-                if (CORE.Input.Gamepad.ready[jid] && (jid < MAX_GAMEPADS))
+                if (Input->Gamepad.ready[jid] && (jid < MAX_GAMEPADS))
                 {
                     platform.gamepad[jid] = SDL_GameControllerOpen(jid);
                     platform.gamepadId[jid] = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(platform.gamepad[jid]));
 
                     if (platform.gamepad[jid])
                     {
-                        CORE.Input.Gamepad.ready[jid] = true;
-                        CORE.Input.Gamepad.axisCount[jid] = SDL_JoystickNumAxes(SDL_GameControllerGetJoystick(platform.gamepad[jid]));
-                        CORE.Input.Gamepad.axisState[jid][GAMEPAD_AXIS_LEFT_TRIGGER] = -1.0f;
-                        CORE.Input.Gamepad.axisState[jid][GAMEPAD_AXIS_RIGHT_TRIGGER] = -1.0f;
-                        memset(CORE.Input.Gamepad.name[jid], 0, MAX_GAMEPAD_NAME_LENGTH);
-                        strncpy(CORE.Input.Gamepad.name[jid], SDL_GameControllerNameForIndex(jid), MAX_GAMEPAD_NAME_LENGTH - 1);
+                        Input->Gamepad.ready[jid] = true;
+                        Input->Gamepad.axisCount[jid] = SDL_JoystickNumAxes(SDL_GameControllerGetJoystick(platform.gamepad[jid]));
+                        Input->Gamepad.axisState[jid][GAMEPAD_AXIS_LEFT_TRIGGER] = -1.0f;
+                        Input->Gamepad.axisState[jid][GAMEPAD_AXIS_RIGHT_TRIGGER] = -1.0f;
+                        memset(Input->Gamepad.name[jid], 0, MAX_GAMEPAD_NAME_LENGTH);
+                        strncpy(Input->Gamepad.name[jid], SDL_GameControllerNameForIndex(jid), MAX_GAMEPAD_NAME_LENGTH - 1);
                     }
                     else
                     {
@@ -1715,8 +1715,8 @@ void PollInputEvents(void)
                     if (platform.gamepadId[i] == jid)
                     {
                         SDL_GameControllerClose(platform.gamepad[i]);
-                        CORE.Input.Gamepad.ready[i] = false;
-                        memset(CORE.Input.Gamepad.name[i], 0, MAX_GAMEPAD_NAME_LENGTH);
+                        Input->Gamepad.ready[i] = false;
+                        memset(Input->Gamepad.name[i], 0, MAX_GAMEPAD_NAME_LENGTH);
                         platform.gamepadId[i] = -1;
                         break;
                     }
@@ -1756,8 +1756,8 @@ void PollInputEvents(void)
                     {
                         if (platform.gamepadId[i] == event.jbutton.which)
                         {
-                            CORE.Input.Gamepad.currentButtonState[i][button] = 1;
-                            CORE.Input.Gamepad.lastButtonPressed = button;
+                            Input->Gamepad.currentButtonState[i][button] = 1;
+                            Input->Gamepad.lastButtonPressed = button;
                             break;
                         }
                     }
@@ -1797,8 +1797,8 @@ void PollInputEvents(void)
                     {
                         if (platform.gamepadId[i] == event.jbutton.which)
                         {
-                            CORE.Input.Gamepad.currentButtonState[i][button] = 0;
-                            if (CORE.Input.Gamepad.lastButtonPressed == button) CORE.Input.Gamepad.lastButtonPressed = 0;
+                            Input->Gamepad.currentButtonState[i][button] = 0;
+                            if (Input->Gamepad.lastButtonPressed == button) Input->Gamepad.lastButtonPressed = 0;
                             break;
                         }
                     }
@@ -1827,16 +1827,16 @@ void PollInputEvents(void)
                         {
                             // SDL axis value range is -32768 to 32767, we normalize it to raylib's -1.0 to 1.0f range
                             float value = event.jaxis.value/(float)32767;
-                            CORE.Input.Gamepad.axisState[i][axis] = value;
+                            Input->Gamepad.axisState[i][axis] = value;
 
                             // Register button state for triggers in addition to their axes
                             if ((axis == GAMEPAD_AXIS_LEFT_TRIGGER) || (axis == GAMEPAD_AXIS_RIGHT_TRIGGER))
                             {
                                 int button = (axis == GAMEPAD_AXIS_LEFT_TRIGGER)? GAMEPAD_BUTTON_LEFT_TRIGGER_2 : GAMEPAD_BUTTON_RIGHT_TRIGGER_2;
                                 int pressed = (value > 0.1f);
-                                CORE.Input.Gamepad.currentButtonState[i][button] = pressed;
-                                if (pressed) CORE.Input.Gamepad.lastButtonPressed = button;
-                                else if (CORE.Input.Gamepad.lastButtonPressed == button) CORE.Input.Gamepad.lastButtonPressed = 0;
+                                Input->Gamepad.currentButtonState[i][button] = pressed;
+                                if (pressed) Input->Gamepad.lastButtonPressed = button;
+                                else if (Input->Gamepad.lastButtonPressed == button) Input->Gamepad.lastButtonPressed = 0;
                             }
                             break;
                         }
@@ -1862,7 +1862,7 @@ void PollInputEvents(void)
             gestureEvent.pointCount = 1;
 
             // Register touch points position, only one point registered
-            if (touchAction == 2 || realTouch) gestureEvent.position[0] = CORE.Input.Touch.position[0];
+            if (touchAction == 2 || realTouch) gestureEvent.position[0] = Input->Touch.position[0];
             else gestureEvent.position[0] = GetMousePosition();
 
             // Normalize gestureEvent.position[0] for CORE.Window.screen.width and CORE.Window.screen.height
@@ -1877,6 +1877,14 @@ void PollInputEvents(void)
 #endif
     }
     //-----------------------------------------------------------------------------
+}
+
+void PollInputEvents(void) {
+    _PollInputEvents(&CORE.Input);
+}
+
+void PollInputEventsAuto(void) {
+    _PollInputEvents(&CORE.InputAuto);
 }
 
 //----------------------------------------------------------------------------------
