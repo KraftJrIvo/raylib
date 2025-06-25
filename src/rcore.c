@@ -3171,6 +3171,19 @@ void PlayAutomationEvent(AutomationEvent event)
 #endif
 }
 
+void ResetInputState() 
+{
+    int exitKey = CORE.Input.Keyboard.exitKey;
+    Vector2 mscale = CORE.Input.Mouse.scale;
+    int mcursor = CORE.Input.Mouse.cursor;
+    GamepadButton glastButtonPressed = CORE.Input.Gamepad.lastButtonPressed;
+    memset(&CORE.Input, 0, sizeof(CORE.Input));
+    CORE.Input.Keyboard.exitKey = exitKey;
+    CORE.Input.Mouse.scale = (Vector2){ 1.0f, 1.0f };
+    CORE.Input.Mouse.cursor = mcursor;
+    CORE.Input.Gamepad.lastButtonPressed = glastButtonPressed;
+}
+
 void ResetAutoInputState() 
 {
     int exitKey = CORE.InputAuto.Keyboard.exitKey;
@@ -3197,6 +3210,7 @@ bool IsKeyPressed(int key)
     if ((key > 0) && (key < MAX_KEYBOARD_KEYS))
     {
         if ((CORE.Input.Keyboard.previousKeyState[key] == 0) && (CORE.Input.Keyboard.currentKeyState[key] == 1)) pressed = true;
+        if ((CORE.InputAuto.Keyboard.previousKeyState[key] == 0) && (CORE.InputAuto.Keyboard.currentKeyState[key] == 1)) pressed = true;
     }
 
     return pressed;
@@ -3210,6 +3224,7 @@ bool IsKeyPressedRepeat(int key)
     if ((key > 0) && (key < MAX_KEYBOARD_KEYS))
     {
         if (CORE.Input.Keyboard.keyRepeatInFrame[key] == 1) repeat = true;
+        if (CORE.InputAuto.Keyboard.keyRepeatInFrame[key] == 1) repeat = true;
     }
 
     return repeat;
@@ -3223,6 +3238,7 @@ bool IsKeyDown(int key)
     if ((key > 0) && (key < MAX_KEYBOARD_KEYS))
     {
         if (CORE.Input.Keyboard.currentKeyState[key] == 1) down = true;
+        if (CORE.InputAuto.Keyboard.currentKeyState[key] == 1) down = true;
     }
 
     return down;
@@ -3236,6 +3252,7 @@ bool IsKeyReleased(int key)
     if ((key > 0) && (key < MAX_KEYBOARD_KEYS))
     {
         if ((CORE.Input.Keyboard.previousKeyState[key] == 1) && (CORE.Input.Keyboard.currentKeyState[key] == 0)) released = true;
+        if ((CORE.InputAuto.Keyboard.previousKeyState[key] == 1) && (CORE.InputAuto.Keyboard.currentKeyState[key] == 0)) released = true;
     }
 
     return released;
@@ -3249,6 +3266,7 @@ bool IsKeyUp(int key)
     if ((key > 0) && (key < MAX_KEYBOARD_KEYS))
     {
         if (CORE.Input.Keyboard.currentKeyState[key] == 0) up = true;
+        if (CORE.InputAuto.Keyboard.currentKeyState[key] == 0) up = true;
     }
 
     return up;
@@ -3335,6 +3353,8 @@ bool IsGamepadButtonPressed(int gamepad, int button)
 
     if ((gamepad < MAX_GAMEPADS) && CORE.Input.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
         (CORE.Input.Gamepad.previousButtonState[gamepad][button] == 0) && (CORE.Input.Gamepad.currentButtonState[gamepad][button] == 1)) pressed = true;
+    if ((gamepad < MAX_GAMEPADS) && CORE.InputAuto.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
+        (CORE.InputAuto.Gamepad.previousButtonState[gamepad][button] == 0) && (CORE.InputAuto.Gamepad.currentButtonState[gamepad][button] == 1)) pressed = true;
 
     return pressed;
 }
@@ -3346,6 +3366,8 @@ bool IsGamepadButtonDown(int gamepad, int button)
 
     if ((gamepad < MAX_GAMEPADS) && CORE.Input.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
         (CORE.Input.Gamepad.currentButtonState[gamepad][button] == 1)) down = true;
+    if ((gamepad < MAX_GAMEPADS) && CORE.InputAuto.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
+        (CORE.InputAuto.Gamepad.currentButtonState[gamepad][button] == 1)) down = true;
 
     return down;
 }
@@ -3357,6 +3379,8 @@ bool IsGamepadButtonReleased(int gamepad, int button)
 
     if ((gamepad < MAX_GAMEPADS) && CORE.Input.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
         (CORE.Input.Gamepad.previousButtonState[gamepad][button] == 1) && (CORE.Input.Gamepad.currentButtonState[gamepad][button] == 0)) released = true;
+    if ((gamepad < MAX_GAMEPADS) && CORE.InputAuto.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
+        (CORE.InputAuto.Gamepad.previousButtonState[gamepad][button] == 1) && (CORE.InputAuto.Gamepad.currentButtonState[gamepad][button] == 0)) released = true;
 
     return released;
 }
@@ -3368,6 +3392,8 @@ bool IsGamepadButtonUp(int gamepad, int button)
 
     if ((gamepad < MAX_GAMEPADS) && CORE.Input.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
         (CORE.Input.Gamepad.currentButtonState[gamepad][button] == 0)) up = true;
+    if ((gamepad < MAX_GAMEPADS) && CORE.InputAuto.Gamepad.ready[gamepad] && (button < MAX_GAMEPAD_BUTTONS) &&
+        (CORE.InputAuto.Gamepad.currentButtonState[gamepad][button] == 0)) up = true;
 
     return up;
 }
@@ -3375,13 +3401,13 @@ bool IsGamepadButtonUp(int gamepad, int button)
 // Get the last gamepad button pressed
 int GetGamepadButtonPressed(void)
 {
-    return CORE.Input.Gamepad.lastButtonPressed;
+    return CORE.Input.Gamepad.lastButtonPressed || CORE.InputAuto.Gamepad.lastButtonPressed;
 }
 
 // Get gamepad axis count
 int GetGamepadAxisCount(int gamepad)
 {
-    return CORE.Input.Gamepad.axisCount[gamepad];
+    return CORE.Input.Gamepad.axisCount[gamepad] || CORE.InputAuto.Gamepad.axisCount[gamepad];
 }
 
 // Get axis movement vector for a gamepad
@@ -3394,6 +3420,13 @@ float GetGamepadAxisMovement(int gamepad, int axis)
         float movement = (value < 0.0f)? CORE.Input.Gamepad.axisState[gamepad][axis] : fabsf(CORE.Input.Gamepad.axisState[gamepad][axis]);
 
         if (movement > value) value = CORE.Input.Gamepad.axisState[gamepad][axis];
+    }
+
+    if ((gamepad < MAX_GAMEPADS) && CORE.InputAuto.Gamepad.ready[gamepad] && (axis < MAX_GAMEPAD_AXES))
+    {
+        float movement = (value < 0.0f)? CORE.InputAuto.Gamepad.axisState[gamepad][axis] : fabsf(CORE.InputAuto.Gamepad.axisState[gamepad][axis]);
+
+        if (movement > value) value = CORE.InputAuto.Gamepad.axisState[gamepad][axis];
     }
 
     return value;
@@ -3413,9 +3446,11 @@ bool IsMouseButtonPressed(int button)
     bool pressed = false;
 
     if ((CORE.Input.Mouse.currentButtonState[button] == 1) && (CORE.Input.Mouse.previousButtonState[button] == 0)) pressed = true;
+    if ((CORE.InputAuto.Mouse.currentButtonState[button] == 1) && (CORE.InputAuto.Mouse.previousButtonState[button] == 0)) pressed = true;
 
     // Map touches to mouse buttons checking
     if ((CORE.Input.Touch.currentTouchState[button] == 1) && (CORE.Input.Touch.previousTouchState[button] == 0)) pressed = true;
+    if ((CORE.InputAuto.Touch.currentTouchState[button] == 1) && (CORE.InputAuto.Touch.previousTouchState[button] == 0)) pressed = true;
 
     return pressed;
 }
@@ -3426,9 +3461,11 @@ bool IsMouseButtonDown(int button)
     bool down = false;
 
     if (CORE.Input.Mouse.currentButtonState[button] == 1) down = true;
+    if (CORE.InputAuto.Mouse.currentButtonState[button] == 1) down = true;
 
     // NOTE: Touches are considered like mouse buttons
     if (CORE.Input.Touch.currentTouchState[button] == 1) down = true;
+    if (CORE.InputAuto.Touch.currentTouchState[button] == 1) down = true;
 
     return down;
 }
@@ -3439,9 +3476,11 @@ bool IsMouseButtonReleased(int button)
     bool released = false;
 
     if ((CORE.Input.Mouse.currentButtonState[button] == 0) && (CORE.Input.Mouse.previousButtonState[button] == 1)) released = true;
+    if ((CORE.InputAuto.Mouse.currentButtonState[button] == 0) && (CORE.InputAuto.Mouse.previousButtonState[button] == 1)) released = true;
 
     // Map touches to mouse buttons checking
     if ((CORE.Input.Touch.currentTouchState[button] == 0) && (CORE.Input.Touch.previousTouchState[button] == 1)) released = true;
+    if ((CORE.InputAuto.Touch.currentTouchState[button] == 0) && (CORE.InputAuto.Touch.previousTouchState[button] == 1)) released = true;
 
     return released;
 }
@@ -3452,9 +3491,11 @@ bool IsMouseButtonUp(int button)
     bool up = false;
 
     if (CORE.Input.Mouse.currentButtonState[button] == 0) up = true;
+    if (CORE.InputAuto.Mouse.currentButtonState[button] == 0) up = true;
 
     // NOTE: Touches are considered like mouse buttons
     if (CORE.Input.Touch.currentTouchState[button] == 0) up = true;
+    if (CORE.InputAuto.Touch.currentTouchState[button] == 0) up = true;
 
     return up;
 }
@@ -3462,14 +3503,14 @@ bool IsMouseButtonUp(int button)
 // Get mouse position X
 int GetMouseX(void)
 {
-    int mouseX = (int)((CORE.Input.Mouse.currentPosition.x + CORE.Input.Mouse.offset.x)*CORE.Input.Mouse.scale.x);
+    int mouseX = (int)((CORE.Input.Mouse.currentPosition.x + CORE.Input.Mouse.offset.x)*CORE.Input.Mouse.scale.x) + (int)((CORE.InputAuto.Mouse.currentPosition.x + CORE.InputAuto.Mouse.offset.x)*CORE.InputAuto.Mouse.scale.x);
     return mouseX;
 }
 
 // Get mouse position Y
 int GetMouseY(void)
 {
-    int mouseY = (int)((CORE.Input.Mouse.currentPosition.y + CORE.Input.Mouse.offset.y)*CORE.Input.Mouse.scale.y);
+    int mouseY = (int)((CORE.Input.Mouse.currentPosition.y + CORE.Input.Mouse.offset.y)*CORE.Input.Mouse.scale.y) + (int)((CORE.InputAuto.Mouse.currentPosition.y + CORE.InputAuto.Mouse.offset.y)*CORE.InputAuto.Mouse.scale.y);
     return mouseY;
 }
 
@@ -3478,8 +3519,8 @@ Vector2 GetMousePosition(void)
 {
     Vector2 position = { 0 };
 
-    position.x = (CORE.Input.Mouse.currentPosition.x + CORE.Input.Mouse.offset.x)*CORE.Input.Mouse.scale.x;
-    position.y = (CORE.Input.Mouse.currentPosition.y + CORE.Input.Mouse.offset.y)*CORE.Input.Mouse.scale.y;
+    position.x = (CORE.Input.Mouse.currentPosition.x + CORE.Input.Mouse.offset.x)*CORE.Input.Mouse.scale.x + (CORE.InputAuto.Mouse.currentPosition.x + CORE.InputAuto.Mouse.offset.x)*CORE.InputAuto.Mouse.scale.x;
+    position.y = (CORE.Input.Mouse.currentPosition.y + CORE.Input.Mouse.offset.y)*CORE.Input.Mouse.scale.y + (CORE.InputAuto.Mouse.currentPosition.y + CORE.InputAuto.Mouse.offset.y)*CORE.InputAuto.Mouse.scale.y;
 
     return position;
 }
@@ -3489,8 +3530,8 @@ Vector2 GetMouseDelta(void)
 {
     Vector2 delta = { 0 };
 
-    delta.x = CORE.Input.Mouse.currentPosition.x - CORE.Input.Mouse.previousPosition.x;
-    delta.y = CORE.Input.Mouse.currentPosition.y - CORE.Input.Mouse.previousPosition.y;
+    delta.x = CORE.Input.Mouse.currentPosition.x - CORE.Input.Mouse.previousPosition.x + CORE.InputAuto.Mouse.currentPosition.x - CORE.InputAuto.Mouse.previousPosition.x;
+    delta.y = CORE.Input.Mouse.currentPosition.y - CORE.Input.Mouse.previousPosition.y + CORE.InputAuto.Mouse.currentPosition.y - CORE.InputAuto.Mouse.previousPosition.y;
 
     return delta;
 }
@@ -3537,14 +3578,14 @@ Vector2 GetMouseWheelMoveV(void)
 // Get touch position X for touch point 0 (relative to screen size)
 int GetTouchX(void)
 {
-    int touchX = (int)CORE.Input.Touch.position[0].x;
+    int touchX = (int)CORE.Input.Touch.position[0].x + (int)CORE.InputAuto.Touch.position[0].x;
     return touchX;
 }
 
 // Get touch position Y for touch point 0 (relative to screen size)
 int GetTouchY(void)
 {
-    int touchY = (int)CORE.Input.Touch.position[0].y;
+    int touchY = (int)CORE.Input.Touch.position[0].y + (int)CORE.InputAuto.Touch.position[0].y;
     return touchY;
 }
 
@@ -3554,8 +3595,12 @@ Vector2 GetTouchPosition(int index)
 {
     Vector2 position = { -1.0f, -1.0f };
 
-    if (index < MAX_TOUCH_POINTS) position = CORE.Input.Touch.position[index];
-    else TRACELOG(LOG_WARNING, "INPUT: Required touch point out of range (Max touch points: %i)", MAX_TOUCH_POINTS);
+    if (index < MAX_TOUCH_POINTS) {
+        position.x = CORE.Input.Touch.position[index].x + CORE.InputAuto.Touch.position[index].x;
+        position.y = CORE.Input.Touch.position[index].y + CORE.InputAuto.Touch.position[index].y;
+    } else {
+        TRACELOG(LOG_WARNING, "INPUT: Required touch point out of range (Max touch points: %i)", MAX_TOUCH_POINTS);
+    }
 
     return position;
 }
@@ -3565,7 +3610,7 @@ int GetTouchPointId(int index)
 {
     int id = -1;
 
-    if (index < MAX_TOUCH_POINTS) id = CORE.Input.Touch.pointId[index];
+    if (index < MAX_TOUCH_POINTS) id = CORE.Input.Touch.pointId[index] + CORE.InputAuto.Touch.pointId[index];
 
     return id;
 }
@@ -3573,7 +3618,7 @@ int GetTouchPointId(int index)
 // Get number of touch points
 int GetTouchPointCount(void)
 {
-    return CORE.Input.Touch.pointCount;
+    return CORE.Input.Touch.pointCount + CORE.InputAuto.Touch.pointCount;
 }
 
 //----------------------------------------------------------------------------------
