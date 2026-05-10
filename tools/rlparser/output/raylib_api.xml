@@ -287,10 +287,13 @@
             <Field type="unsigned int" name="count" desc="Filepaths entries count" />
             <Field type="char **" name="paths" desc="Filepaths entries" />
         </Struct>
-        <Struct name="AutomationEvent" fieldCount="3" desc="Automation event">
+        <Struct name="AutomationEvent" fieldCount="6" desc="Automation event">
             <Field type="unsigned int" name="frame" desc="Event frame" />
             <Field type="unsigned int" name="type" desc="Event type (AutomationEventType)" />
-            <Field type="int[4]" name="params" desc="Event parameters (if required)" />
+            <Field type="int" name="param0" desc="Event parameters (if required)" />
+            <Field type="int" name="param1" desc="Event parameters (if required)" />
+            <Field type="int" name="param2" desc="Event parameters (if required)" />
+            <Field type="int" name="param3" desc="Event parameters (if required)" />
         </Struct>
         <Struct name="AutomationEventList" fieldCount="3" desc="Automation event list">
             <Field type="unsigned int" name="capacity" desc="Events max entries (MAX_AUTOMATION_EVENTS)" />
@@ -682,7 +685,7 @@
             <Param type="unsigned int" name="frames" desc="" />
         </Callback>
     </Callbacks>
-    <Functions count="602">
+    <Functions count="603">
         <Function name="InitWindow" retType="void" paramCount="3" desc="Initialize window and OpenGL context">
             <Param type="int" name="width" desc="" />
             <Param type="int" name="height" desc="" />
@@ -1205,6 +1208,8 @@
         </Function>
         <Function name="PlayAutomationEvent" retType="void" paramCount="1" desc="Play a recorded automation event">
             <Param type="AutomationEvent" name="event" desc="" />
+        </Function>
+        <Function name="ResetInputState" retType="void" paramCount="0" desc="Reset all input data">
         </Function>
         <Function name="IsKeyPressed" retType="bool" paramCount="1" desc="Check if a key has been pressed once">
             <Param type="int" name="key" desc="" />

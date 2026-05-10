@@ -1362,8 +1362,23 @@ return {
           description = "Event type (AutomationEventType)"
         },
         {
-          type = "int[4]",
-          name = "params",
+          type = "int",
+          name = "param0",
+          description = "Event parameters (if required)"
+        },
+        {
+          type = "int",
+          name = "param1",
+          description = "Event parameters (if required)"
+        },
+        {
+          type = "int",
+          name = "param2",
+          description = "Event parameters (if required)"
+        },
+        {
+          type = "int",
+          name = "param3",
           description = "Event parameters (if required)"
         }
       }
@@ -4392,6 +4407,11 @@ return {
       params = {
         {type = "AutomationEvent", name = "event"}
       }
+    },
+    {
+      name = "ResetInputState",
+      description = "Reset all input data",
+      returnType = "void"
     },
     {
       name = "IsKeyPressed",
